@@ -1,43 +1,67 @@
-# di.js
+# @emonkak/di
 
-[![Build Status](https://travis-ci.org/emonkak/di.js.svg?branch=master)](https://travis-ci.org/emonkak/di.js)
-[![Coverage Status](https://coveralls.io/repos/emonkak/di.js/badge.svg?branch=master&service=github)](https://coveralls.io/github/emonkak/di.js?branch=master)
+[![Build Status](https://travis-ci.org/emonkak/js-di.svg?branch=master)](https://travis-ci.org/emonkak/js-di)
+[![Coverage Status](https://coveralls.io/repos/emonkak/js-di/badge.svg?branch=master)](https://coveralls.io/r/emonkak/js-di?branch=master)
 
 ## Example
 
-```javascript
-import {Injector, singletonScope} from '@emonkak/di'
+```typescript
+import { Container, Inject, Named, Singleton, prototypeInjectionPolicy } from '@emonkak/di';
 
-function Foo(bar, baz) {
-    this.bar = bar
-    this.baz = baz
+class IFoo {
+    bar: IBar;
 }
 
-function Bar(qux, quux) {
-    this.qux = qux
-    this.quux = quux
+class IBar {
+    baz: IBaz;
+    qux: IQux;
+    quux: any;
 }
 
-function Baz(qux, quux) {
-    this.qux = qux
-    this.quux = quux
+class IBaz {
+    qux: IQux;
 }
 
-function Qux() {}
+class IQux {}
 
-function Quux() {}
-
-function fooFactory(bar, baz) {
-    return new Foo(bar, baz)
+@Inject
+class Foo {
+    constructor(public bar: IBar) {
+    }
 }
 
-const injector = new Injector()
-    .define(Foo, [Bar, Baz], fooFactory)
-    .defineClass(Bar, [Qux, Quux])
-    .defineClass(Baz, [Qux, Quux])
-    .defineClass(Qux, [], singletonScope)
-    .defineClass(Quux, [])
+@Inject
+class Bar {
+    constructor(public baz: IBaz, public qux: IQux, @Named('quux') public quux: any) {
+    }
+}
 
-// Resolves the dependencies for 'Foo'
-injector.resolve(Foo)
+@Inject
+class Baz {
+    constructor(public qux: IQux) {
+    }
+}
+
+@Inject
+@Singleton
+class Qux {
+    constructor() {
+    }
+}
+
+const container = new Container(prototypeInjectionPolicy);
+container.bind(IFoo).to(Foo);
+container.bind(IBar).to(Bar);
+container.bind(IBaz).to(Baz);
+container.bind(IQux).to(Qux);
+container.set('quux', 'quux');
+
+const foo = container.get(Foo);
+
+console.assert(foo instanceof Foo);
+console.assert(foo.bar instanceof Bar);
+console.assert(foo.bar.baz instanceof Baz);
+console.assert(foo.bar.qux instanceof Qux);
+console.assert(foo.bar.qux === foo.bar.baz.qux);
+console.assert(foo.bar.quux === 'quux');
 ```
